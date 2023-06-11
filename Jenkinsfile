@@ -1,63 +1,31 @@
 pipeline {
     agent any
+
     tools {
-        maven "MAVEN"
+        // The name should match the Maven installation configured in your Jenkins
+        maven 'maven-in-opt'
     }
-    environment {
-        NEXUS_VERSION = "nexus3"
-        NEXUS_PROTOCOL = "http"
-        NEXUS_URL = "159.223.191.140:8081"
-        NEXUS_REPOSITORY = "java-app"
-        NEXUS_CREDENTIAL_ID = "NEXUS_CRED"
-    }
+
     stages {
-        stage("Clone code from GitHub") {
+        stage('Checkout') {
             steps {
-                script {
-                    git branch: 'main', credentialsId: 'githubwithpassword', url: 'https://github.com/devopshint/jenkins-nexus';
-                }
+                // Replace with your GitHub project URL
+                git 'https://github.com/yourname/yourproject.git'
             }
         }
-        stage("Maven Build") {
+
+        stage('Build with Maven') {
             steps {
-                script {
-                    sh "mvn package -DskipTests=true"
-                }
+                // Maven build
+                sh 'mvn clean install'
             }
         }
-        stage("Publish to Nexus Repository Manager") {
+
+        stage('Deploy to Nexus') {
             steps {
-                script {
-                    pom = readMavenPom file: "pom.xml";
-                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
-                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    artifactPath = filesByGlob[0].path;
-                    artifactExists = fileExists artifactPath;
-                    if(artifactExists) {
-                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
-                        nexusArtifactUploader(
-                            nexusVersion: NEXUS_VERSION,
-                            protocol: NEXUS_PROTOCOL,
-                            nexusUrl: NEXUS_URL,
-                            groupId: pom.groupId,
-                            version: pom.version,
-                            repository: NEXUS_REPOSITORY,
-                            credentialsId: NEXUS_CREDENTIAL_ID,
-                            artifacts: [
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging],
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: "pom.xml",
-                                type: "pom"]
-                            ]
-                        );
-                    } else {
-                        error "*** File: ${artifactPath}, could not be found";
-                    }
-                }
+                // Push artifacts to Nexus
+                // Replace 'your-nexus-repository' with your actual Nexus repository ID
+                sh 'mvn deploy -DaltDeploymentRepository=your-nexus-repository::default::http://nexus-url:8081/repository/your-nexus-repository/'
             }
         }
     }
